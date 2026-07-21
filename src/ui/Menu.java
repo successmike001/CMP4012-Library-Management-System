@@ -1,4 +1,4 @@
-package utilities;
+package ui;
 
 public class Menu {
 }
