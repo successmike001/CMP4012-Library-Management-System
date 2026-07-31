@@ -1,158 +1,171 @@
 package services;
 
-import model.Book;
-
+import model.*;
+import utilities.Validation;
 import java.util.ArrayList;
+import java.util.Comparator;
 
 /**
- ===============================================================
- LibraryManager.java
- ---------------------------------------------------------------
- Manages the collection of books within the Library Management
- System.
+ * ===============================================================
+ * LibraryManager.java
+ * ---------------------------------------------------------------
+ * Manages the collection of books within the Library Management
+ * System.
 
- This class is responsible for storing, searching, updating,
- borrowing and displaying books while maintaining the integrity
- of the library catalogue.
+ Responsibilities:
+ * • Store the library collection.
+ * • Add, remove and update books.
+ * • Search for books.
+ * • Manage borrowing and returning.
 
- Author : Michael Nmerenini
- Module : CMP4011
- ===============================================================
+ Does NOT:
+ * • Read user input.
+ * • Display menus.
+ * • Save or load files.
+ * ===============================================================
  */
-
 public class LibraryManager {
 
     /* ============================================================
        Private Fields
-       ------------------------------------------------------------
-       Store and manage the library's book collection.
        ============================================================ */
 
-    // Stores every book in the library.
+    /**
+     * Stores every book in the library.
+     */
     private final ArrayList<Book> books;
-
-    // Separates sections of console output.
-    private static final String DIVIDER =
-            "-------------------------------------------------------------------" +
-                    "---------------------------------------";
-
 
     /* ============================================================
        Constructor
-       ------------------------------------------------------------
-       Creates an empty library ready to store books.
        ============================================================ */
 
+    /**
+     * Creates an empty library.
+     */
     public LibraryManager() {
+
         books = new ArrayList<>();
     }
 
-
     /* ============================================================
        Getters
-       ------------------------------------------------------------
-       Provide access to information about the library collection.
        ============================================================ */
 
+    /**
+     * Returns every book currently stored.
+     * @return the library collection
+     */
     public ArrayList<Book> getBooks() {
+
         return books;
     }
 
-    public int getTotalBooks() {
-        return books.size();
+    //-------------------------------------------------------------
+
+    /**
+     * Replaces the current collection with one loaded from storage.
+     * @param books books loaded from the CSV file
+     */
+    public void setBooks(ArrayList<Book> books) {
+
+        this.books.clear();
+
+        if (books != null) {
+            this.books.addAll(books);
+        }
+
+        sortBooksByID();
     }
 
-
     /* ============================================================
-       Core Library Operations
-       ------------------------------------------------------------
-       Perform the main tasks involved in managing the library.
+        Core Library Operations
        ============================================================ */
 
     /**
      * Adds a new book to the library.
-     * @param book is the book to add.
-     * @return is true if the book was added successfully; otherwise false.
+     * @param book the book to add
+     * @return the result of the add operation
      */
-    public boolean addBook(Book book) {
+    public AddResult addBook(Book book) {
 
-        // Stop duplicate Book IDs.
         if (bookIDExists(book.getBookID())) {
-            return false;
+            return AddResult.DUPLICATE_BOOK_ID;
         }
 
         books.add(book);
+        sortBooksByID();
 
-        return true;
+        return AddResult.SUCCESS;
     }
 
+    //-------------------------------------------------------------
+
     /**
-     * Removes a book from the library.
-     * @param bookID is the Book ID to remove.
-     * @return true if the book was removed; otherwise false.
+     * Removes a book using its Book ID.
+     * @param bookID the Book ID
+     * @return the result of the remove operation
      */
-    public boolean removeBook(int bookID) {
+    public RemoveResult removeBook(int bookID) {
 
         Book book = findBookByID(bookID);
 
-        // Stop if the book cannot be found.
         if (book == null) {
-            return false;
+            return RemoveResult.BOOK_NOT_FOUND;
         }
 
         books.remove(book);
 
-        return true;
+        return RemoveResult.SUCCESS;
     }
 
+    //-------------------------------------------------------------
+
     /**
-     * Updates the details of an existing book.
-     * @param currentBookID - The current Book ID.
-     * @param newBookID - The new Book ID.
-     * @param newTitle - The updated title.
-     * @param newAuthor - The updated author.
-     * @param newPublicationYear - The updated publication year.
-     * @param newGenre - The updated genre.
-     * @return true if the update was successful; otherwise false.
+     * Updates an existing book.
+     * @param bookID the Book ID
+     * @param newTitle updated title
+     * @param newAuthor updated author
+     * @param newPublicationYear updated publication year
+     * @param newGenre updated genre
+     * @return the result of the update operation
      */
-    public boolean updateBook(int currentBookID,
-                              int newBookID,
-                              String newTitle,
-                              String newAuthor,
-                              int newPublicationYear,
-                              String newGenre) {
+    public UpdateResult updateBook(
+            int bookID,
+            String newTitle,
+            String newAuthor,
+            int newPublicationYear,
+            String newGenre) {
 
-        Book book = findBookByID(currentBookID);
+        Book book = findBookByID(bookID);
 
-        // Stop if the book does not exist.
         if (book == null) {
-            return false;
+            return UpdateResult.BOOK_NOT_FOUND;
         }
 
-        // Prevent duplicate Book IDs.
-        if (currentBookID != newBookID && bookIDExists(newBookID)) {
-            return false;
+        if (!Validation.isValidTitle(newTitle)
+                || !Validation.isValidAuthor(newAuthor)
+                || !Validation.isValidPublicationYear(newPublicationYear)
+                || !Validation.isValidGenre(newGenre)) {
+
+            return UpdateResult.INVALID_DATA;
         }
 
-        book.setBookID(newBookID);
         book.setTitle(newTitle);
         book.setAuthor(newAuthor);
         book.setYear(newPublicationYear);
         book.setGenre(newGenre);
 
-        return true;
+        return UpdateResult.SUCCESS;
     }
 
-    /* ============================================================
+        /* ============================================================
        Search Operations
-       ------------------------------------------------------------
-       Locate books using different search criteria.
        ============================================================ */
 
     /**
-     * Finds a book using its unique Book ID.
-     * @param bookID - The Book ID to search for.
-     * @return The matching Book object, or null if not found.
+     * Finds a book using its Book ID.
+     * @param bookID the Book ID to search for
+     * @return the matching Book, or null if not found
      */
     public Book findBookByID(int bookID) {
 
@@ -166,19 +179,26 @@ public class LibraryManager {
         return null;
     }
 
+    //-------------------------------------------------------------
+
     /**
-     * Searches for books whose titles contain the specified text.
-     * The search is case-insensitive.
-     * @param title The title to search for.
-     * @return A list of matching books.
+     * Searches for books by title.
+     * @param title the title to search for
+     * @return matching books
      */
     public ArrayList<Book> searchByTitle(String title) {
 
         ArrayList<Book> results = new ArrayList<>();
 
+        if (!Validation.isValidTitle(title)) {
+            return results;
+        }
+
+        String search = title.trim().toLowerCase();
+
         for (Book book : books) {
 
-            if (book.getTitle().toLowerCase().contains(title.toLowerCase())) {
+            if (book.getTitle().toLowerCase().contains(search)) {
                 results.add(book);
             }
         }
@@ -186,19 +206,27 @@ public class LibraryManager {
         return results;
     }
 
+    //-------------------------------------------------------------
+
     /**
-     * Searches for books written by a particular author.
-     * The search is case-insensitive.
-     * @param author The author to search for.
-     * @return A list of matching books.
+     * Searches for books by author.
+     *
+     * @param author the author to search for
+     * @return matching books
      */
     public ArrayList<Book> searchByAuthor(String author) {
 
         ArrayList<Book> results = new ArrayList<>();
 
+        if (!Validation.isValidAuthor(author)) {
+            return results;
+        }
+
+        String search = author.trim().toLowerCase();
+
         for (Book book : books) {
 
-            if (book.getAuthor().toLowerCase().contains(author.toLowerCase())) {
+            if (book.getAuthor().toLowerCase().contains(search)) {
                 results.add(book);
             }
         }
@@ -206,19 +234,27 @@ public class LibraryManager {
         return results;
     }
 
+    //-------------------------------------------------------------
+
     /**
-     * Searches for books belonging to a particular genre.
-     * The search is case-insensitive.
-     * @param genre The genre to search for.
-     * @return A list of matching books.
+     * Searches for books by genre.
+     *
+     * @param genre the genre to search for
+     * @return matching books
      */
     public ArrayList<Book> searchByGenre(String genre) {
 
         ArrayList<Book> results = new ArrayList<>();
 
+        if (!Validation.isValidGenre(genre)) {
+            return results;
+        }
+
+        String search = genre.trim().toLowerCase();
+
         for (Book book : books) {
 
-            if (book.getGenre().toLowerCase().contains(genre.toLowerCase())) {
+            if (book.getGenre().toLowerCase().contains(search)) {
                 results.add(book);
             }
         }
@@ -226,197 +262,129 @@ public class LibraryManager {
         return results;
     }
 
-
     /* ============================================================
-       Borrowing Operations
-       ------------------------------------------------------------
-       Manage the borrowing and returning of books.
+       Retrieval Operations
        ============================================================ */
 
     /**
-     * Borrows a book from the library.
-     * @param bookID The Book ID of the book to borrow.
-     * @param borrowerName The name of the borrower.
-     * @return true if the book was borrowed successfully; otherwise false.
+     * Returns all available books.
+     *
+     * @return available books
      */
-    public boolean borrowBook(int bookID, String borrowerName) {
+    public ArrayList<Book> getAvailableBooks() {
 
-        Book book = findBookByID(bookID);
-
-        // Stop if the book does not exist.
-        if (book == null) {
-            return false;
-        }
-
-        // Let the Book object handle the borrowing.
-        return book.borrowBook(borrowerName);
-    }
-
-    /**
-     * Returns a borrowed book to the library.
-     * @param bookID The Book ID of the book to return.
-     * @return true if the book was returned successfully; otherwise false.
-     */
-    public boolean returnBook(int bookID) {
-
-        Book book = findBookByID(bookID);
-
-        // Stop if the book does not exist.
-        if (book == null) {
-            return false;
-        }
-
-        // Let the Book object handle the return.
-        return book.returnBook();
-    }
-
-
-    /* ============================================================
-       Display Operations
-       ------------------------------------------------------------
-       Display library information in a clear, tabular format.
-       ============================================================ */
-
-    /**
-     * Displays every book in the library.
-     */
-    public void displayAllBooks() {
-
-        // Stop if the library is empty.
-        if (books.isEmpty()) {
-            System.out.println("\nThe library currently contains no books.");
-            return;
-        }
-
-        displayTableHeader("LIBRARY CATALOGUE");
-
-        for (Book book : books) {
-            System.out.println(book);
-        }
-
-        displayTableFooter();
-
-        System.out.println("Total Books: " + books.size());
-    }
-
-    /**
-     * Displays all books that are available for borrowing.
-     */
-    public void displayAvailableBooks() {
-
-        boolean availableBooksFound = false;
-
-        displayTableHeader("AVAILABLE BOOKS");
+        ArrayList<Book> availableBooks = new ArrayList<>();
 
         for (Book book : books) {
 
             if (book.isAvailable()) {
-                System.out.println(book);
-                availableBooksFound = true;
+                availableBooks.add(book);
             }
         }
 
-        displayTableFooter();
-
-        if (!availableBooksFound) {
-            System.out.println("No available books were found.");
-        }
+        return availableBooks;
     }
 
+    //-------------------------------------------------------------
+
     /**
-     * Displays all books that are currently on loan.
+     * Returns all borrowed books.
+     *
+     * @return borrowed books
      */
-    public void displayBorrowedBooks() {
+    public ArrayList<Book> getBorrowedBooks() {
 
-        boolean borrowedBooksFound = false;
-
-        displayTableHeader("BORROWED BOOKS");
+        ArrayList<Book> borrowedBooks = new ArrayList<>();
 
         for (Book book : books) {
 
             if (!book.isAvailable()) {
-                System.out.println(book);
-                borrowedBooksFound = true;
+                borrowedBooks.add(book);
             }
         }
 
-        displayTableFooter();
-
-        if (!borrowedBooksFound) {
-            System.out.println("No borrowed books were found.");
-        }
+        return borrowedBooks;
     }
-
-    /**
-     * Displays the results of a search.
-     * @param results The list of matching books.
-     */
-    public void displaySearchResults(ArrayList<Book> results) {
-
-        System.out.println("\nSearch complete.");
-
-        // Stop if no matches were found.
-        if (results.isEmpty()) {
-            System.out.println("No matching books were found.");
-            return;
-        }
-
-        System.out.println(results.size() + " matching book(s) found.");
-
-        displayTableHeader("SEARCH RESULTS");
-
-        for (Book book : results) {
-            System.out.println(book);
-        }
-
-        displayTableFooter();
-
-        System.out.println("Matches Found: " + results.size());
-    }
-
 
     /* ============================================================
-       Helper Methods
-       ------------------------------------------------------------
-       Support the internal operations of the LibraryManager class.
+       Borrowing Operations
        ============================================================ */
 
     /**
-     * Displays the heading used for library tables.
+     * Borrows a book.
      *
-     * @param title The title displayed above the table.
+     * @param bookID the Book ID
+     * @param borrower the borrower's name
+     * @return the result of the borrow operation
      */
-    private void displayTableHeader(String title) {
+    public BorrowResult borrowBook(int bookID, String borrower) {
 
-        System.out.println("\n========================= " + title + " =========================");
+        Book book = findBookByID(bookID);
 
-        System.out.printf("%-8s %-30s %-20s %-6s %-15s %-12s %-20s%n",
-                "ID",
-                "Title",
-                "Author",
-                "Year",
-                "Genre",
-                "Status",
-                "Borrower");
+        if (book == null) {
+            return BorrowResult.BOOK_NOT_FOUND;
+        }
 
-        System.out.println(DIVIDER);
+        if (!book.isAvailable()) {
+            return BorrowResult.ALREADY_BORROWED;
+        }
+
+        book.borrowBook(borrower);
+
+        return BorrowResult.SUCCESS;
     }
+
+    //-------------------------------------------------------------
 
     /**
-     * Displays the closing divider for library tables.
+     * Returns a borrowed book.
+     *
+     * @param bookID the Book ID
+     * @return the result of the return operation
      */
-    private void displayTableFooter() {
-        System.out.println(DIVIDER);
+    public ReturnResult returnBook(int bookID, String borrower) {
+
+        Book book = findBookByID(bookID);
+
+        if (book == null) {
+            return ReturnResult.BOOK_NOT_FOUND;
+        }
+
+        if (book.isAvailable()) {
+            return ReturnResult.ALREADY_RETURNED;
+        }
+
+        if (!book.getBorrower().equalsIgnoreCase(borrower.trim())) {
+            return ReturnResult.NOT_BORROWER;
+        }
+
+        book.returnBook();
+
+        return ReturnResult.SUCCESS;
     }
+
+    /* ============================================================
+       Helper Methods
+       ============================================================ */
 
     /**
      * Checks whether a Book ID already exists.
-     * @param bookID The Book ID to check.
-     * @return true if the Book ID exists; otherwise false.
+     *
+     * @param bookID the Book ID to check
+     * @return true if the Book ID already exists
      */
-    private boolean bookIDExists(int bookID) {
+    public boolean bookIDExists(int bookID) {
 
         return findBookByID(bookID) != null;
     }
 
+    //-------------------------------------------------------------
+
+    /**
+     * Sorts the library by Book ID in ascending order.
+     */
+    private void sortBooksByID() {
+
+        books.sort(Comparator.comparingInt(Book::getBookID));
+    }
 }

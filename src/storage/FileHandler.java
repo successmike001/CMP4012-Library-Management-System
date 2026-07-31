@@ -140,6 +140,8 @@ public class FileHandler {
                 book.getBorrower();
     }
 
+    //-------------------------------------------------------------
+
     /**
      * Converts a CSV record into a Book object.
      * @param line A CSV record representing a book.
@@ -157,7 +159,7 @@ public class FileHandler {
         String status = data[5];
         String borrower = data[6];
 
-        /*-----------------------------------------------------*/
+        /*----------------------*/
         return new Book(
                 bookID,
                 title,

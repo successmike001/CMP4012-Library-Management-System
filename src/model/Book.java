@@ -1,5 +1,6 @@
 package model;
 
+import utilities.DisplayFormatter;
 import java.util.Objects;
 
 /**
@@ -11,9 +12,6 @@ import java.util.Objects;
  Each Book object stores its own details and manages its
  borrowing status, allowing the rest of the application to
  interact with it through well-defined methods.
-
- Author : Michael Nmerenini
- Module : CMP4011
  ===============================================================
  */
 
@@ -56,7 +54,12 @@ public class Book {
         this.year = year;
         this.genre = genre;
         this.status = status;
-        this.borrower = borrower;
+
+        if ("Available".equalsIgnoreCase(status)) {
+            this.borrower = "-";
+        } else {
+            this.borrower = borrower;
+        }
     }
 
     /* ============================================================
@@ -110,10 +113,20 @@ public class Book {
     }
 
     public void setStatus(String status) {
+
         this.status = status;
+
+        if ("Available".equalsIgnoreCase(status)) {
+            borrower = "-";
+        }
     }
 
     public String getBorrower() {
+
+        if (borrower == null || borrower.isBlank()) {
+            return "-";
+        }
+
         return borrower;
     }
 
@@ -121,7 +134,7 @@ public class Book {
         this.borrower = borrower;
     }
 
-        /* ============================================================
+    /* ============================================================
        Book Operations
        ------------------------------------------------------------
        Define the behaviour associated with borrowing and returning
@@ -133,7 +146,7 @@ public class Book {
      * @return is true if the book is available; otherwise false.
      */
     public boolean isAvailable() {
-        return status.equalsIgnoreCase("Available");
+        return "Available".equalsIgnoreCase(status);
     }
 
     /**
@@ -148,8 +161,16 @@ public class Book {
             return false;
         }
 
+        // Stop if no borrower name was supplied.
+        if (memberName == null
+                || memberName.trim().isEmpty()
+                || "-".equals(memberName.trim())) {
+
+            return false;
+        }
+
         status = "Borrowed";
-        borrower = memberName;
+        borrower = memberName.trim();
 
         return true;
     }
@@ -166,9 +187,28 @@ public class Book {
         }
 
         status = "Available";
-        borrower = "";
+        borrower = "-";
 
         return true;
+    }
+    //----------------------------------------------------------------
+    /**
+     * Shortens text that exceeds the specified width.
+     * @param text the text to shorten
+     * @param maxLength the maximum permitted length
+     * @return the original text if it fits; otherwise a truncated version
+     */
+    private String truncate(String text, int maxLength) {
+
+        if (text == null) {
+            return "-";
+        }
+
+        if (text.length() <= maxLength) {
+            return text;
+        }
+
+        return text.substring(0, maxLength - 3) + "...";
     }
 
     /* ============================================================
@@ -186,17 +226,38 @@ public class Book {
     public String toString() {
 
         return String.format(
-                "%-8d %-30s %-20s %-6d %-15s %-12s %-20s",
+                "%-" + DisplayFormatter.ID_WIDTH + "d " +
+                        "%-" + DisplayFormatter.TITLE_WIDTH + "s " +
+                        "%-" + DisplayFormatter.AUTHOR_WIDTH + "s " +
+                        "%-" + DisplayFormatter.YEAR_WIDTH + "d " +
+                        "%-" + DisplayFormatter.GENRE_WIDTH + "s " +
+                        "%-" + DisplayFormatter.STATUS_WIDTH + "s " +
+                        "%-" + DisplayFormatter.BORROWER_WIDTH + "s",
                 bookID,
-                title,
-                author,
+                truncate(title, DisplayFormatter.TITLE_WIDTH),
+                truncate(author, DisplayFormatter.AUTHOR_WIDTH),
                 year,
-                genre,
+                truncate(genre, DisplayFormatter.GENRE_WIDTH),
                 status,
-                borrower
+                truncate(borrower, DisplayFormatter.BORROWER_WIDTH)
         );
     }
 
+    //------------------------------------------------------------------
+    public String toMemberString() {
+
+        return String.format(
+                "%-8d %-40s %-30s %-6d %-25s %-15s",
+                bookID,
+                truncate(title, DisplayFormatter.TITLE_WIDTH),
+                truncate(author, DisplayFormatter.AUTHOR_WIDTH),
+                year,
+                truncate(genre, DisplayFormatter.GENRE_WIDTH),
+                status
+        );
+    }
+
+    //------------------------------------------------------------------
     /**
      * Compares two Book objects using their unique Book ID.
      * @param obj is the object to compare.
