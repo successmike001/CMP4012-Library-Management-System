@@ -56,4 +56,7 @@ src
 
 ## Author
 
-Michael C. Nmerenini
+* Michael C. Nmerenini (Team Leader)
+* Krish Rana
+* Srijana Tamata
+* Sadip Baniya

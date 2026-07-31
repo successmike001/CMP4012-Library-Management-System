@@ -19,8 +19,12 @@ import ui.Menu;
  * • Perform library operations.
 
 
- * Author : Michael Chukwuemeka Nmerenini
- * Student ID: st20350588
+ * Authors :
+ * Michael Chukwuemeka Nmerenini - ST20350588 (Leader)
+ * Krish Rana – ST20351250
+ * Srijana Tamata – ST20350508
+ * Sadip Baniya – ST20351059
+ *
  * Module : Computer Sci. & App. (CMP4012)
  * Assessment : PRAC1
  * ===============================================================
