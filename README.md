@@ -1,4 +1,4 @@
-# Library Management System
+# My Library Management System
 
 ## Overview
 This project is a Java console-based Library Management System developed for the Computer Science and Applications module (CMP4012) at Cardiff Metropolitan University.
